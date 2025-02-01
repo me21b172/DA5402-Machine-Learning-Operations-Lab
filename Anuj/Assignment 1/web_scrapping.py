@@ -1,78 +1,76 @@
 from bs4 import BeautifulSoup
 import requests
-import argparse
-import json
 from bs4 import BeautifulSoup
 import requests
-from PIL import Image
-from io import BytesIO
+import ast
+from concurrent.futures import ThreadPoolExecutor
 
+def read_text_file():
+    with open("Anuj/Assignment 1/config_file.txt", "r") as file:
+        return ast.literal_eval(file.read())
 
-def load_image_from_url(url):
+def download_and_process_image(url):
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raise error for bad status codes
-        return Image.open(BytesIO(response.content))
+        response.raise_for_status()
+        image = response.content
+        return image
     except Exception as e:
-        print(f"Error loading image: {e}")
+        print(f"Error processing image from {url}: {e}")
         return None
+    
 
-url = "https://news.google.com/home?hl=en-IN&gl=IN&ceid=IN:en"
-target_url = "https://news.google.com"
-response = requests.get(url)
-
-headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-}
-DEFAULT_CONFIG = {
-    "base_url": "https://news.google.com",
-    "output_file": "news_data.json",
-    "selectors": {
-        "article": "article[class*='IBr9hb']",
-        "title": "a[class*='gPFEn']",
-        "source": "div[class*='vr1PYe']",
-        "image": "img[class*='Quavad']",
-        "thumbnail": {
-            "container": "figure[class*='K0q4G']",  # Thumbnail container
-            "img": "img[class*='Quavad']",         # Actual image element
-            "fallback": "div[class*='DwnlN']"      # Background 
-        },
-        "time": "time"
-    }
-}
-try:
-    response = requests.get(DEFAULT_CONFIG["base_url"], headers=headers)
-    response.raise_for_status()
-except requests.exceptions.RequestException as e:
-    print(f"Request failed: {e}")
+def extract_top_stories():
+    DEFAULT_CONFIG = read_text_file()
+    try:
+        response = requests.get(DEFAULT_CONFIG["url"], headers=DEFAULT_CONFIG["headers"])
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
 
 
-soup = BeautifulSoup(response.content, 'html.parser')
-news_items = []
-
-for article in soup.select(DEFAULT_CONFIG["selectors"]["article"]):
-    item = {}
-    if title_elem := article.select_one(DEFAULT_CONFIG["selectors"]["title"]):
-        item["title"] = title_elem.text
-        # item["link"] = urljoin(DEFAULT_CONFIG["base_url"], title_elem.get('href'))
-
-    if img_elem := article.select_one(DEFAULT_CONFIG["selectors"]["image"]):
-    # Try multiple possible attributes for image URL
-        item["image"] = (
-            target_url + img_elem.get('srcset').split()[0]           # Standard attribute
-            # img_elem.get('data-src') or     # Lazy-loaded images
-            # img_elem.get('data-iurl')       # Google-specific CDN URLs
+    soup = BeautifulSoup(response.content, 'html.parser')
+    link = DEFAULT_CONFIG["target_url"] + soup.find("a",class_="aqvwYd").get('href')
+    try:
+        response = requests.get(
+            link, 
+            headers=DEFAULT_CONFIG["headers"],
+            params=DEFAULT_CONFIG["params"],
+            timeout=100,
+            allow_redirects=True,
+            stream=True
         )
-        img = load_image_from_url(item["image"])
-        if img:
-            img.show()  # Display the image
-    
-    if source_elem := article.select_one(DEFAULT_CONFIG["selectors"]["source"]):
-        item["source"] = source_elem.text
-    
-    if time_elem := article.select_one(DEFAULT_CONFIG["selectors"]["time"]):
-        item["timestamp"] = time_elem.get('datetime')
-    
-    if item:
-        news_items.append(item)
-print(news_items)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+    news_items = []
+
+    for article in soup.select(DEFAULT_CONFIG["selectors"]["article"]):
+        item = {}
+        link_elem = article.select_one(DEFAULT_CONFIG["selectors"]["link"])
+        title_elem = article.select_one(DEFAULT_CONFIG["selectors"]["title"])
+        img_elem = article.select_one(DEFAULT_CONFIG["selectors"]["image"])
+        source_elem = article.select_one(DEFAULT_CONFIG["selectors"]["source"])
+        time_elem = article.select_one(DEFAULT_CONFIG["selectors"]["time"])
+        if link_elem is not None and title_elem is not None and img_elem is not None and source_elem is not None and time_elem is not None:
+            item["link"] =  DEFAULT_CONFIG["target_url"] +  link_elem.get('href')
+            item["title"] = title_elem.text
+            item["image"] = DEFAULT_CONFIG["target_url"] + img_elem.get('srcset').split()[0]           # Standard attribute
+            item["source"] = source_elem.text
+            item["timestamp"] = time_elem.get('datetime')
+        
+        if item:
+            news_items.append(item)
+    # Extracting Image and parallelising the to load he image
+    image_url = [news["image"] for news in news_items ] 
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(download_and_process_image, image_url))
+    for i,news in enumerate(news_items):
+        news["image"] = results[i]
+    return news_items
+if __name__ == "__main__":
+    print(len(extract_top_stories()))
+# print(len(extract_top_stories()))
