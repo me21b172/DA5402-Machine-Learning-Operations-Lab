@@ -1,6 +1,8 @@
+# #Run the code to orchestrate all the above modules
 import psycopg2
 from web_scrapping import extract_top_stories
 def hosting_db_locally():
+    '''Connecting to database inside the system'''
     try:
         conn = psycopg2.connect(database = "image_captioning", 
                             user = "postgres", 
@@ -13,10 +15,9 @@ def hosting_db_locally():
         print("Error while connecting to PostgreSQL", error)
 
 def create_tables():
+    '''Creating Tables'''
     conn = hosting_db_locally()
     cur = conn.cursor()
-    # Execute a command: create datacamp_courses table
-    # print(table_check)
     cur.execute("""CREATE TABLE IF NOT EXISTS news_image_data (
                     image_id SERIAL PRIMARY KEY,
                     news_title TEXT NOT NULL,
@@ -32,12 +33,11 @@ def create_tables():
                     date_scraped TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                     );
                 """)
-        # Make the changes to the database persistent
     conn.commit()
-    # Close cursor and communication with the database
     cur.close()
     conn.close()
 def is_news_in_database(cur, news):
+    '''Check to ensure whether news exists tn the table so as to prevent duplicates in our database'''
     cur.execute(
         """
         SELECT EXISTS(
@@ -49,10 +49,11 @@ def is_news_in_database(cur, news):
         """,
         (news["link"], news["title"])
     )
-    result = cur.fetchone()  # fetch the single row returned
-    return not result[0]         # return the boolean value
+    result = cur.fetchone()  
+    return not result[0]       
 
 def insert_data():
+    '''Inserting data into database'''
     conn = hosting_db_locally()
     cur = conn.cursor()
     news_data = extract_top_stories()

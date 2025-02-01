@@ -1,3 +1,4 @@
+#Run the code to get the top news from the website (Not really the main function which orchestrate all the modules)
 from bs4 import BeautifulSoup
 import requests
 from bs4 import BeautifulSoup
@@ -6,10 +7,12 @@ import ast
 from concurrent.futures import ThreadPoolExecutor
 
 def read_text_file():
-    with open("Anuj/Assignment 1/config_file.txt", "r") as file:
+    '''Reading config file'''
+    with open("config_file.txt", "r") as file:      # Change the file location depeding on it's location
         return ast.literal_eval(file.read())
 
 def download_and_process_image(url):
+    '''Loading image from the url'''
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -21,13 +24,13 @@ def download_and_process_image(url):
     
 
 def extract_top_stories():
+    '''Workhorse for web scrapping'''
     DEFAULT_CONFIG = read_text_file()
     try:
         response = requests.get(DEFAULT_CONFIG["url"], headers=DEFAULT_CONFIG["headers"])
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
-
 
     soup = BeautifulSoup(response.content, 'html.parser')
     link = DEFAULT_CONFIG["target_url"] + soup.find("a",class_="aqvwYd").get('href')
@@ -48,6 +51,7 @@ def extract_top_stories():
     soup = BeautifulSoup(response.content, 'html.parser')
     news_items = []
 
+    # Going through the articles
     for article in soup.select(DEFAULT_CONFIG["selectors"]["article"]):
         item = {}
         link_elem = article.select_one(DEFAULT_CONFIG["selectors"]["link"])
@@ -73,4 +77,3 @@ def extract_top_stories():
     return news_items
 if __name__ == "__main__":
     print(len(extract_top_stories()))
-# print(len(extract_top_stories()))
