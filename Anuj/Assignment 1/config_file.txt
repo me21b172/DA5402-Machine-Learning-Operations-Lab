@@ -1,1 +1,27 @@
-{'url': 'https://news.google.com/home?hl=en-IN&gl=IN&ceid=IN:en', 'target_url': 'https://news.google.com', 'headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}, 'output_file': 'news_data.json', 'selectors': {'article': "article[class*='IBr9hb']", 'link': "a[class*='WwrzSb']", 'title': "a[class*='gPFEn']", 'source': "div[class*='vr1PYe']", 'image': "img[class*='Quavad']", 'time': 'time'}, 'params': {'limit': '1000', 'page': '1', 'no_lazy': '1', 'full_page': 'true'}}
+{
+    'url': 'https://news.google.com/home?hl=en-IN&gl=IN&ceid=IN:en',
+    'target_url': 'https://news.google.com',
+    'headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    },
+    'output_file': 'news_data.json',
+    'selectors': {
+        'article': "article[class*='IBr9hb']",
+        'link': "a[class*='WwrzSb']",
+        'title': "a[class*='gPFEn']",
+        'source': "div[class*='vr1PYe']",
+        'image': "img[class*='Quavad']",
+        'time': 'time'
+    },
+    'params': {
+        'limit': '1000',
+        'page': '1',
+        'no_lazy': '1',
+        'full_page': 'true'
+    },
+    'database': "image_captioning",  
+    'user': "postgres",              
+    'host': 'localhost',             
+    'password': "AnujS@003",        
+    'port': 5432                    
+}
